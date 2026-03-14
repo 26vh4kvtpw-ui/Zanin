@@ -49,3 +49,34 @@ if __name__ == "__main__":
             time.sleep(5)
 
 
+import os
+from threading import Thread
+from flask import Flask
+import time
+
+# --- Твой основной код бота и хендлеры здесь ---
+
+# Создаем мини-сервер для обмана Render
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "I'm alive"
+
+def run():
+    # Render дает порт в переменной окружения PORT
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+if __name__ == "__main__":
+    # Запускаем "сайт" в отдельном потоке
+    keep_alive()
+    
+    # Запускаем бота с бесконечным циклом
+    while True:
+        try:
+            print("Бот по
