@@ -2,7 +2,6 @@ import telebot
 import requests
 import os
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 TOKEN = '7746320533:AAES6Psnh9SVYYGGrlmN5ij0KHkJb4OX9Kg'
@@ -16,52 +15,44 @@ def is_subscribed(user_id):
     except:
         return True
 
-def download_file(url, filename):
-    r = requests.get(url, stream=True)
-    if r.status_code == 200:
-        with open(filename, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=1024*1024):
-                if chunk: f.write(chunk)
-        return True
-    return False
-
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "✅ Бот готов! Теперь видео будут в оригинальном качестве без лагов звука.")
+    bot.reply_to(message, "🚀 Теперь использую новый метод загрузки. Кидай ссылку!")
 
 @bot.message_handler(func=lambda m: 'tiktok.com' in m.text.lower())
-def handle_docs(message):
+def handle_video(message):
     if not is_subscribed(message.from_user.id):
-        bot.send_message(message.chat.id, f"❌ Сначала подпишись на {CHANNEL_ID}")
+        bot.send_message(message.chat.id, f"❌ Подпишись на {CHANNEL_ID}")
         return
 
-    status_msg = bot.reply_to(message, "⏳ Скачиваю оригинал без потери качества...")
+    msg = bot.reply_to(message, "📥 Загружаю оригинал через новый сервер...")
     link = message.text.split()[0]
     
     try:
-        # Получаем ссылку на HD
-        api = f"https://www.tikwm.com/api/?url={link}&hd=1"
-        data = requests.get(api).json()
-        video_url = data['data'].get('hdplay') or data['data'].get('play')
+        # Используем другое API (TiklyDown)
+        api = f"https://api.tiklydown.eu.org/api/download?url={link}"
+        res = requests.get(api).json()
+        
+        # Берем ссылку на видео без водяного знака
+        video_url = res.get('video', {}).get('noWatermark')
         
         if video_url:
-            if not video_url.startswith('http'): video_url = "https://www.tikwm.com" + video_url
-            
-            # СКАЧИВАЕМ ФАЙЛ НА ДИСК (чтобы звук не отставал)
             file_path = f"video_{message.chat.id}.mp4"
-            if download_file(video_url, file_path):
-                with open(file_path, 'rb') as video:
-                    bot.send_video(message.chat.id, video, caption="HD качество 🔥 @ZanimEdits")
-                os.remove(file_path) # Удаляем файл после отправки
-                bot.delete_message(message.chat.id, status_msg.message_id)
-            else:
-                bot.edit_message_text("❌ Ошибка при загрузке файла.", message.chat.id, status_msg.message_id)
+            r = requests.get(video_url)
+            with open(file_path, 'wb') as f:
+                f.write(r.content)
+            
+            # ОТПРАВЛЯЕМ КАК ДОКУМЕНТ (чтобы Telegram не трогал звук)
+            with open(file_path, 'rb') as video:
+                bot.send_document(message.chat.id, video, caption="HD Оригинал (без обработки) 🔥")
+            
+            os.remove(file_path)
+            bot.delete_message(message.chat.id, msg.message_id)
         else:
-            bot.edit_message_text("❌ Не удалось найти видео.", message.chat.id, status_msg.message_id)
+            bot.edit_message_text("❌ Сервер не смог достать это видео.", message.chat.id, msg.message_id)
     except Exception as e:
-        bot.edit_message_text(f"❌ Ошибка: {e}", message.chat.id, status_msg.message_id)
+        bot.edit_message_text(f"❌ Ошибка: {e}", message.chat.id, msg.message_id)
 
-# Сервер для Render
 class S(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200); self.end_headers(); self.wfile.write(b"OK")
