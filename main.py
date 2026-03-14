@@ -40,7 +40,8 @@ if __name__ == "__main__":
     # Сбрасываем старые зависшие сессии
     bot.remove_webhook()
     
-    print("Бот запущен!") # Эта надпись ДОЛЖНА появиться в логах
+    print("Бот запущен!", flush=True)
+
     
     try:
         bot.infinity_polling(timeout=20, long_polling_timeout=10)
