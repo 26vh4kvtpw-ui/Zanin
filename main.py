@@ -24,19 +24,33 @@ def get_video_url(url):
         return None
 
 # 3. Обработка ссылок
-@bot.message_handler(func=lambda m: 'tiktok.com' in m.text)
-def handle_video(message):
-    wait_msg = bot.reply_to(message, "⏳ Секунду, достаю видео...")
-    link = get_video_url(message.text.strip())
-    
-    if link:
-        try:
-            bot.send_video(message.chat.id, link)
-            bot.delete_message(message.chat.id, wait_msg.message_id)
-        except Exception as e:
-            bot.edit_message_text(f"❌ Ошибка при отправке: {e}", message.chat.id, wait_msg.message_id)
-    else:
-        bot.edit_message_text("😔 Не смог скачать. Попробуй другую ссылку.", message.chat.id, wait_msg.message_id)
+def get_video_url(url):
+    # Метод 1: Tiklydown
+    try:
+        r = requests.get(f"https://api.tiklydown.eu.org/api/download?url={url}", timeout=10)
+        if r.status_code == 200:
+            return r.json().get('video', {}).get('noWatermark')
+    except:
+        pass
+
+    # Метод 2: Douyin.wtf
+    try:
+        r = requests.get(f"https://api.douyin.wtf/api/tiktok/info?url={url}", timeout=10)
+        if r.status_code == 200:
+            return r.json().get('video_data', {}).get('nwm_video_url_HQ')
+    except:
+        pass
+
+    # Метод 3: Спец-сервер
+    try:
+        r = requests.get(f"https://www.tikwm.com/api/?url={url}", timeout=10)
+        if r.status_code == 200:
+            return "https://www.tikwm.com" + r.json().get('data', {}).get('play')
+    except:
+        pass
+
+    return None
+
 
 # --- Техническая часть для Render ---
 class WebHandler(BaseHTTPRequestHandler):
