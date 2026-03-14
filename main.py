@@ -36,45 +36,20 @@ import time
 
 # Твой основной код (хендлеры и т.д.) должен быть ВЫШЕ этой строки
 
-if __name__ == "__main__":
-    print("Бот запускается...")
-    while True:
-        try:
-            # infinity_polling сам перезапускается при разрывах
-            # skip_pending=True удалит старые сообщения, чтобы бот не спамил при старте
-            bot.infinity_polling(timeout=20, long_polling_timeout=10, skip_pending=True)
-        except Exception as e:
-            # Если видим ошибку 409 (Conflict), просто ждем 5 секунд и пробуем снова
-            print(f"Замечен конфликт или ошибка: {e}. Пробую снова через 5 сек...")
-            time.sleep(5)
-
-
 import os
-from threading import Thread
-from flask import Flask
-import time
+import threading
+import http.server
+import socketserver
 
-# --- Твой основной код бота и хендлеры здесь ---
-
-# Создаем мини-сервер для обмана Render
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "I'm alive"
-
-def run():
-    # Render дает порт в переменной окружения PORT
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
+def run_static_server():
+    port = int(os.environ.get("PORT", 10000))
+    handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", port), handler) as httpd:
+        httpd.serve_forever()
 
 if __name__ == "__main__":
-    # Запускаем "сайт" в отдельном потоке
-    keep_alive()
+    # Запускаем фальшивый сервер в отдельном потоке для Render
+    threading.Thread(target=run_static_server, daemon=True).start()
     
     while True:
         try:
@@ -82,4 +57,5 @@ if __name__ == "__main__":
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
         except Exception as e:
             print(f"Ошибка: {e}")
+            import time
             time.sleep(5)
