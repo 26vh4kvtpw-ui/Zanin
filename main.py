@@ -76,7 +76,10 @@ if __name__ == "__main__":
     # Запускаем "сайт" в отдельном потоке
     keep_alive()
     
-    # Запускаем бота с бесконечным циклом
     while True:
         try:
             print("Бот запущен!")
+            bot.infinity_polling(timeout=20, long_polling_timeout=10)
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            time.sleep(5)
