@@ -9,19 +9,24 @@ TOKEN = '7746320533:AAES6Psnh9SVYYGGrlmN5ij0KHkJb4OX9Kg'
 bot = telebot.TeleBot(TOKEN)
 
 # 1. Ответ на /start
-@bot.message_handler(commands=['start'])
-def start_message(message):
-    bot.send_message(message.chat.id, "Привет! Присылай ссылку на TikTok, и я попробую её скачать! 🚀")
-
-# 2. Логика скачивания
-def get_video_url(url):
-    api_url = f"https://api.douyin.wtf/api/tiktok/info?url={url}"
-    try:
-        r = requests.get(api_url, timeout=15)
-        data = r.json()
-        return data.get('video_data', {}).get('nwm_video_url_HQ')
-    except:
-        return None
+print:('Привет! Пришли свою ссылку и я ее скачаю!') on command: /start
+# Универсальный обработчик ссылок TikTok
+@bot.message_handler(func=lambda m: 'tiktok.com' in m.text.lower())
+def handle_video(message):
+    print(f"Получена ссылка: {message.text}") # Это появится в логах Render
+    wait_msg = bot.reply_to(message, "⏳ Вижу ссылку! Начинаю поиск видео...")
+    
+    # Пытаемся достать прямую ссылку через нашу "тройную" функцию
+    link = get_video_url(message.text.strip())
+    
+    if link:
+        try:
+            bot.send_video(message.chat.id, link)
+            bot.delete_message(message.chat.id, wait_msg.message_id)
+        except Exception as e:
+            bot.edit_message_text(f"❌ Не удалось отправить файл: {e}", message.chat.id, wait_msg.message_id)
+    else:
+        bot.edit_message_text("😔 Все три сервера не смогли скачать это видео. Попробуй другую ссылку.", message.chat.id, wait_msg.message_id)
 
 # 3. Обработка ссылок
 def get_video_url(url):
