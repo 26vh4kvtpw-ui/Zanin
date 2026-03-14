@@ -13,7 +13,7 @@ def run_web():
     app.run(host='0.0.0.0', port=8080)
 
 # --- ТВОЙ КОД БОТА ---
-TOKEN = 'ТВОЙ_ТОКЕН'
+TOKEN = '7746320533:AAH2wr3tBIfvM9BUqGgS5XlSm65A6gW7EDw'
 bot = telebot.TeleBot(TOKEN)
 
 def get_tiktok_video(url):
