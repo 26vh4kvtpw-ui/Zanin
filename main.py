@@ -4,57 +4,54 @@ import os
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-TOKEN = '7746320533:AAHsQngCsZW-VyhQoU7akrZHsO8CY2Tl1-o'
+# ТОКЕН (Проверь его еще раз, чтобы не было лишних пробелов)
+TOKEN = '7746320533:AAES6Psnh9SVYYGGrlmN5ij0KHkJb4OX9Kg'
 bot = telebot.TeleBot(TOKEN)
 
-# --- 1. ПРИВЕТСТВИЕ ---
+# 1. Ответ на /start
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, "Привет! Присылай свою ссылку и я ее скачаю! 🚀")
+def start_message(message):
+    bot.send_message(message.chat.id, "Привет! Присылай ссылку на TikTok, и я попробую её скачать! 🚀")
 
-# --- 2. ЛОГИКА СКАЧИВАНИЯ ---
-def get_tiktok_video(url):
+# 2. Логика скачивания
+def get_video_url(url):
     api_url = f"https://api.douyin.wtf/api/tiktok/info?url={url}"
     try:
-        response = requests.get(api_url, timeout=15)
-        data = response.json()
-        video_url = data.get('video_data', {}).get('nwm_video_url_HQ') or data.get('video_data', {}).get('nwm_video_url')
-        return video_url
-    except Exception as e:
-        print(f"Ошибка API: {e}")
+        r = requests.get(api_url, timeout=15)
+        data = r.json()
+        return data.get('video_data', {}).get('nwm_video_url_HQ')
+    except:
         return None
 
-@bot.message_handler(func=lambda message: "tiktok.com" in message.text)
-def handle_tiktok(message):
-    msg = bot.reply_to(message, "⏳ Пытаюсь достать видео из TikTok...")
+# 3. Обработка ссылок
+@bot.message_handler(func=lambda m: 'tiktok.com' in m.text)
+def handle_video(message):
+    wait_msg = bot.reply_to(message, "⏳ Секунду, достаю видео...")
+    link = get_video_url(message.text.strip())
     
-    # Берем только первое слово (ссылку), чтобы не было ошибок из-за лишнего текста
-    raw_url = message.text.split()[0] if ' ' in message.text else message.text
-    video_url = get_tiktok_video(raw_url)
-    
-    if video_url:
+    if link:
         try:
-            bot.send_video(message.chat.id, video_url)
-            bot.delete_message(message.chat.id, msg.message_id)
+            bot.send_video(message.chat.id, link)
+            bot.delete_message(message.chat.id, wait_msg.message_id)
         except Exception as e:
-            bot.edit_message_text(f"❌ Ошибка отправки: {e}", message.chat.id, msg.message_id)
+            bot.edit_message_text(f"❌ Ошибка при отправке: {e}", message.chat.id, wait_msg.message_id)
     else:
-        bot.edit_message_text("😔 Не удалось скачать. Проверь, что ссылка рабочая!", message.chat.id, msg.message_id)
+        bot.edit_message_text("😔 Не смог скачать. Попробуй другую ссылку.", message.chat.id, wait_msg.message_id)
 
-# --- 3. ОБМАНКА ДЛЯ RENDER ---
-class SimpleHandler(BaseHTTPRequestHandler):
+# --- Техническая часть для Render ---
+class WebHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"OK")
+        self.wfile.write(b"Bot is alive")
 
-def run_static_server():
+def run_web():
     port = int(os.environ.get("PORT", 8080))
-    server = HTTPServer(('0.0.0.0', port), SimpleHandler)
+    server = HTTPServer(('0.0.0.0', port), WebHandler)
     server.serve_forever()
 
 if __name__ == "__main__":
-    threading.Thread(target=run_static_server, daemon=True).start()
+    threading.Thread(target=run_web, daemon=True).start()
     bot.remove_webhook()
-    print("Бот запущен!", flush=True)
+    print("БОТ ЗАПУЩЕН!", flush=True)
     bot.infinity_polling()
