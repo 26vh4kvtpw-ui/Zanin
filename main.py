@@ -59,3 +59,19 @@ if __name__ == "__main__":
             print(f"Ошибка: {e}")
             import time
             time.sleep(5)
+if __name__ == "__main__":
+    # 1. Запускаем "обманку" для Render
+    threading.Thread(target=run_static_server, daemon=True).start()
+    
+    # 2. СБРАСЫВАЕМ ЗАВИСШИЕ СОЕДИНЕНИЯ (Добавь эту строку!)
+    bot.remove_webhook() 
+    
+    # 3. Запускаем самого бота
+    while True:
+        try:
+            print("Бот запущен!")
+            bot.infinity_polling(timeout=20, long_polling_timeout=10)
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            import time
+            time.sleep(5)
