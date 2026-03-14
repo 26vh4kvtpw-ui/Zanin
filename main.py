@@ -2,19 +2,22 @@ import telebot
 import requests
 import os
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 TOKEN = '7746320533:AAHsQngCsZW-VyhQoU7akrZHsO8CY2Tl1-o'
 bot = telebot.TeleBot(TOKEN)
 
+# --- 1. ПРИВЕТСТВИЕ ---
+@bot.message_handler(commands=['start'])
+def start(message):
+    bot.reply_to(message, "Привет! Присылай свою ссылку и я ее скачаю! 🚀")
+
+# --- 2. ЛОГИКА СКАЧИВАНИЯ ---
 def get_tiktok_video(url):
-    # Используем альтернативное API (dl-api)
     api_url = f"https://api.douyin.wtf/api/tiktok/info?url={url}"
     try:
         response = requests.get(api_url, timeout=15)
         data = response.json()
-        # Проверяем наличие прямой ссылки на видео без водяного знака
         video_url = data.get('video_data', {}).get('nwm_video_url_HQ') or data.get('video_data', {}).get('nwm_video_url')
         return video_url
     except Exception as e:
@@ -25,7 +28,7 @@ def get_tiktok_video(url):
 def handle_tiktok(message):
     msg = bot.reply_to(message, "⏳ Пытаюсь достать видео из TikTok...")
     
-    # Очищаем ссылку
+    # Берем только первое слово (ссылку), чтобы не было ошибок из-за лишнего текста
     raw_url = message.text.split()[0] if ' ' in message.text else message.text
     video_url = get_tiktok_video(raw_url)
     
@@ -36,9 +39,9 @@ def handle_tiktok(message):
         except Exception as e:
             bot.edit_message_text(f"❌ Ошибка отправки: {e}", message.chat.id, msg.message_id)
     else:
-        bot.edit_message_text("😔 Сервер скачивания не ответил. Попробуй другую ссылку или чуть позже.", message.chat.id, msg.message_id)
+        bot.edit_message_text("😔 Не удалось скачать. Проверь, что ссылка рабочая!", message.chat.id, msg.message_id)
 
-# --- Стандартный блок для Render ---
+# --- 3. ОБМАНКА ДЛЯ RENDER ---
 class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -53,5 +56,5 @@ def run_static_server():
 if __name__ == "__main__":
     threading.Thread(target=run_static_server, daemon=True).start()
     bot.remove_webhook()
-    print("Бот-скачиватель (v2) запущен!", flush=True)
+    print("Бот запущен!", flush=True)
     bot.infinity_polling()
