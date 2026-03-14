@@ -17,7 +17,7 @@ def is_subscribed(user_id):
 
 @bot.message_handler(commands=['start'])
 def start(message):
-    bot.reply_to(message, "🚀 Теперь использую новый метод загрузки. Кидай ссылку!")
+    bot.reply_to(message, "🚀 Бот обновлен! Теперь использую резервные серверы. Присылай ссылку!")
 
 @bot.message_handler(func=lambda m: 'tiktok.com' in m.text.lower())
 def handle_video(message):
@@ -25,33 +25,41 @@ def handle_video(message):
         bot.send_message(message.chat.id, f"❌ Подпишись на {CHANNEL_ID}")
         return
 
-    msg = bot.reply_to(message, "📥 Загружаю оригинал через новый сервер...")
+    msg = bot.reply_to(message, "📥 Загружаю оригинал...")
     link = message.text.split()[0]
-    
+    video_url = None
+
+    # Попытка №1: TiklyDown
     try:
-        # Используем другое API (TiklyDown)
-        api = f"https://api.tiklydown.eu.org/api/download?url={link}"
-        res = requests.get(api).json()
-        
-        # Берем ссылку на видео без водяного знака
+        res = requests.get(f"https://api.tiklydown.eu.org/api/download?url={link}", timeout=10).json()
         video_url = res.get('video', {}).get('noWatermark')
-        
-        if video_url:
+    except:
+        # Попытка №2: TikWM (если первый упал)
+        try:
+            res = requests.get(f"https://www.tikwm.com/api/?url={link}&hd=1", timeout=10).json()
+            video_url = res['data'].get('hdplay') or res['data'].get('play')
+            if video_url and not video_url.startswith('http'):
+                video_url = "https://www.tikwm.com" + video_url
+        except:
+            pass
+
+    if video_url:
+        try:
             file_path = f"video_{message.chat.id}.mp4"
             r = requests.get(video_url)
             with open(file_path, 'wb') as f:
                 f.write(r.content)
             
-            # ОТПРАВЛЯЕМ КАК ДОКУМЕНТ (чтобы Telegram не трогал звук)
+            # Отправка документом, чтобы не лагал звук
             with open(file_path, 'rb') as video:
-                bot.send_document(message.chat.id, video, caption="HD Оригинал (без обработки) 🔥")
+                bot.send_document(message.chat.id, video, caption="HD Оригинал 🔥 @ZanimEdits")
             
             os.remove(file_path)
             bot.delete_message(message.chat.id, msg.message_id)
-        else:
-            bot.edit_message_text("❌ Сервер не смог достать это видео.", message.chat.id, msg.message_id)
-    except Exception as e:
-        bot.edit_message_text(f"❌ Ошибка: {e}", message.chat.id, msg.message_id)
+        except Exception as e:
+            bot.edit_message_text(f"❌ Ошибка отправки: {e}", message.chat.id, msg.message_id)
+    else:
+        bot.edit_message_text("😔 Все серверы заняты или ссылка битая. Попробуй еще раз через минуту.", message.chat.id, msg.message_id)
 
 class S(BaseHTTPRequestHandler):
     def do_GET(self):
