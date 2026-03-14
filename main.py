@@ -36,6 +36,18 @@ def download(message):
 if __name__ == "__main__":
     # Запускаем веб-сервер в отдельном потоке
     Thread(target=run_web).start()
-    # Запускаем бота
-    print("Бот запущен!")
-    bot.infinity_polling()
+    import time
+
+# ... твой остальной код ...
+
+if __name__ == "__main__":
+    while True:
+        try:
+            print("Бот запускается...")
+            # infinity_polling сам умеет переподключаться
+            bot.infinity_polling(timeout=20, long_polling_timeout=10)
+        except Exception as e:
+            print(f"Ошибка: {e}")
+            # Если возник конфликт (409), ждем 5 секунд и пробуем снова
+            time.sleep(5)
+
