@@ -32,22 +32,20 @@ def download(message):
     else:
         bot.send_message(message.chat.id, "Ошибка скачивания")
 
-# Запуск
-if __name__ == "__main__":
-    # Запускаем веб-сервер в отдельном потоке
-    Thread(target=run_web).start()
-    import time
+import time
 
-# ... твой остальной код ...
+# Твой основной код (хендлеры и т.д.) должен быть ВЫШЕ этой строки
 
 if __name__ == "__main__":
+    print("Бот запускается...")
     while True:
         try:
-            print("Бот запускается...")
-            # infinity_polling сам умеет переподключаться
-            bot.infinity_polling(timeout=20, long_polling_timeout=10)
+            # infinity_polling сам перезапускается при разрывах
+            # skip_pending=True удалит старые сообщения, чтобы бот не спамил при старте
+            bot.infinity_polling(timeout=20, long_polling_timeout=10, skip_pending=True)
         except Exception as e:
-            print(f"Ошибка: {e}")
-            # Если возник конфликт (409), ждем 5 секунд и пробуем снова
+            # Если видим ошибку 409 (Conflict), просто ждем 5 секунд и пробуем снова
+            print(f"Замечен конфликт или ошибка: {e}. Пробую снова через 5 сек...")
             time.sleep(5)
+
 
